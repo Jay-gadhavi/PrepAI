@@ -16,7 +16,7 @@ export function Hero() {
       <div className="relative z-10 flex max-w-4xl flex-col items-center text-center">
         <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#27272a] bg-[#121215]/70 px-4 py-1.5 text-xs font-medium tracking-wide text-[#a1a1aa] backdrop-blur">
           <Sparkles className="h-3.5 w-3.5 text-white" />
-          Powered by real-time Gemini AI
+          Powered by real-time Groq AI
         </span>
 
         <h1 className="font-display text-balance text-5xl font-bold leading-[1.05] tracking-tight text-white sm:text-6xl md:text-7xl">

@@ -1,16 +1,16 @@
 # PrepAI — AI-Powered Technical & HR Interview Preparation Platform
 
-**PrepAI** is a full-stack, AI-assisted interview preparation platform. It parses candidate resumes, extracts core skills and gaps, generates customized interview questions, and provides an interactive mock interview experience.
+**PrepAI** is a full-stack, AI-assisted interview preparation platform. It parses candidate resumes, validates document structure, extracts technical skills & proficiency scores, generates customized interview questions, and provides an interactive mock interview experience.
 
 ---
 
 ## ✨ Features
 
-- 📄 **Resume PDF Parser**: Instant NLP extraction of text and skills from uploaded resumes.
-- ⚡ **AI Skill Gap Analysis**: Identifies candidate strengths and areas for improvement.
-- 🎯 **Targeted Question Generation**: Generates customized technical and HR interview questions based on candidate profile.
-- 💬 **Interactive Mock Interview**: Practice answering real-time interview prompts.
-- 🔒 **User Authentication**: Secure JWT-based authentication and user dashboard.
+- 📄 **Resume PDF Parser & Validator**: Instant text extraction with automated document validation (detects and rejects non-resume uploads).
+- ⚡ **Dynamic AI Skill Gap Analysis**: Powered by Groq AI (Llama 3.3 70B) for real-time skill detection, proficiency scoring (0-100%), strengths, focus areas, and learning roadmaps.
+- 🎯 **Targeted Question Generation**: Generates 5 technical and 3 HR interview questions customized to candidate's exact resume technology stack.
+- 💬 **Interactive Mock Interview**: Real-time evaluation of candidate responses with AI scoring and STAR-method feedback.
+- 🔒 **User Authentication**: Secure JWT-based authentication, user profile management, and session history tracking.
 
 ---
 
@@ -18,7 +18,7 @@
 
 - **Frontend**: React (Vite), Tailwind CSS, Lucide Icons
 - **Backend**: Node.js, Express.js, MongoDB (Mongoose)
-- **AI Integration**: Google Gemini AI (`@google/generative-ai`)
+- **AI Integration**: Groq AI (`llama-3.3-70b-versatile` / `llama3-8b-8192`) & Google Gemini AI fallback
 - **Authentication**: JWT, bcryptjs
 - **File Processing**: Multer, pdf-parse
 
@@ -30,11 +30,12 @@
 
 - Node.js (v18+ recommended)
 - MongoDB running locally (`mongodb://localhost:27017`) or a MongoDB Atlas URI
+- Free Groq API Key from [console.groq.com/keys](https://console.groq.com/keys)
 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_USERNAME/PrepAI.git
+git clone https://github.com/Jay-gadhavi/PrepAI.git
 cd PrepAI
 ```
 
@@ -51,6 +52,7 @@ Create a `.env` file inside `server/` (refer to `.env.example`):
 PORT=5000
 MONGO_URI=mongodb://localhost:27017/prepai
 JWT_SECRET=your_jwt_secret_here
+GROQ_API_KEY=gsk_your_groq_api_key_here
 ```
 
 Start the backend server:
@@ -69,7 +71,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+Open [http://localhost:3000](http://localhost:3000) (or `http://localhost:5173`) in your browser.
 
 ---
 

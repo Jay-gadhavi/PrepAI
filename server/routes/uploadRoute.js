@@ -1,11 +1,11 @@
 require("dotenv").config();
-const { analyzeResume, evaluateAnswer } = require("../services/ollamaService");
+const { analyzeResume, evaluateAnswer, generateQuestions } = require("../services/groqService");
 const cleanResumeText = require("../utils/resumeCleaner");
+const validateResume = require("../utils/resumeValidator");
 const express = require("express");
 const multer = require("multer");
 const pdfParse = require("pdf-parse");
 const fs = require("fs");
-const { generateQuestions } = require("../services/questionService");
 const ResumeAnalysis = require("../models/ResumeAnalysis");
 const InterviewSession = require("../models/InterviewSession");
 
@@ -28,6 +28,13 @@ if (!fs.existsSync("uploads")) {
 
 router.post("/upload", upload.single("resume"), async (req, res) => {
   try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No PDF file uploaded."
+      });
+    }
+
     const dataBuffer = fs.readFileSync(req.file.path);
     let extractedText = "";
 
@@ -36,11 +43,23 @@ router.post("/upload", upload.single("resume"), async (req, res) => {
       extractedText = cleanResumeText(pdfData.text);
     } catch (error) {
       console.log("PDF PARSE ERROR:", error);
-      extractedText = "PDF parsing failed";
+      return res.status(400).json({
+        success: false,
+        message: "Unable to parse PDF text. Please upload a standard PDF file."
+      });
+    }
+
+    // Validate if the extracted text is actually a candidate resume
+    const validation = validateResume(extractedText);
+    if (!validation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: validation.reason
+      });
     }
 
     console.log("\n==========================================");
-    console.log(`📄 RESUME TEXT EXTRACTED FROM PDF (${req.file.originalname}):`);
+    console.log(`📄 RESUME TEXT EXTRACTED & VALIDATED (${req.file.originalname}):`);
     console.log("------------------------------------------");
     console.log(extractedText ? extractedText.slice(0, 1000) + (extractedText.length > 1000 ? "\n...[truncated for log]" : "") : "[No text extracted]");
     console.log("==========================================\n");
@@ -54,19 +73,21 @@ router.post("/upload", upload.single("resume"), async (req, res) => {
     console.log("UPLOAD ERROR:", error);
     res.status(500).json({
       success: false,
-      message: "Upload failed"
+      message: "Upload processing failed."
     });
   }
 });
 
 const { protect } = require("../middleware/authMiddleware");
 
-router.post("/analyze", protect, async (req, res) => {
+router.post("/analyze", async (req, res) => {
   try {
     const { resumeText, fileName } = req.body;
-    const limitedResumeText = resumeText.slice(0, 2500);
+    const limitedResumeText = (resumeText || "").slice(0, 3000);
 
+    console.log("⚡ Triggering Groq AI Resume Analysis...");
     const analysis = await analyzeResume(limitedResumeText);
+    console.log("✅ Groq AI Analysis Result:", JSON.stringify(analysis, null, 2));
 
     // Save Analysis to MongoDB if DB is connected
     let savedRecord = null;
@@ -94,7 +115,8 @@ router.post("/analyze", protect, async (req, res) => {
     console.log("ANALYZE ERROR:", error);
     res.json({
       success: false,
-      analysis: "Unable to analyze resume."
+      analysis: null,
+      message: "Unable to analyze resume."
     });
   }
 });

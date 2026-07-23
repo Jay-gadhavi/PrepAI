@@ -28,17 +28,25 @@ export function SkillDashboard({ analysis }) {
   const weaknesses = rawWeaknesses.length > 0 ? Array.from(new Set(rawWeaknesses)) : defaultWeaknesses
 
   const skillsList = analysis?.skills && analysis.skills.length > 0
-    ? analysis.skills.map((s, idx) => ({
-        name: s,
-        score: Math.min(96, Math.max(45, 88 - idx * 8)),
-      }))
+    ? analysis.skills.map((s, idx) => {
+        if (typeof s === 'object' && s !== null) {
+          return {
+            name: s.name || s.skill || `Skill ${idx + 1}`,
+            score: typeof s.score === 'number' ? s.score : Math.min(95, Math.max(50, 88 - idx * 6))
+          }
+        }
+        return {
+          name: String(s),
+          score: Math.min(95, Math.max(50, 88 - idx * 6))
+        }
+      })
     : defaultSkills
 
   const recommendations = analysis?.recommendations && analysis.recommendations.length > 0
     ? analysis.recommendations.map((rec, idx) => ({
         step: String(idx + 1).padStart(2, '0'),
-        title: rec,
-        detail: 'AI recommendation derived from detected gap in resume.',
+        title: typeof rec === 'string' ? rec : (rec.title || rec.recommendation || 'Recommendation'),
+        detail: 'AI-generated recommendation based on your resume analysis.',
         done: idx === 0,
       }))
     : defaultRoadmap
