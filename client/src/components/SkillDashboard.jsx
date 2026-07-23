@@ -1,11 +1,11 @@
-import { TrendingUp, AlertTriangle, Check, Circle } from 'lucide-react'
+import { TrendingUp, AlertTriangle, Check, Circle, Layers } from 'lucide-react'
 
 const defaultSkills = [
-  { name: 'Data Structures & Algorithms', score: 85 },
-  { name: 'System Design', score: 54 },
-  { name: 'Behavioral & HR', score: 72 },
-  { name: 'Database & SQL', score: 41 },
-  { name: 'Frontend Architecture', score: 90 },
+  { name: 'Frontend Architecture', score: 88, subSkills: ['React', 'JavaScript', 'HTML/CSS'] },
+  { name: 'Backend & API Engineering', score: 82, subSkills: ['Node.js', 'Express', 'REST APIs'] },
+  { name: 'Core Algorithms & Design', score: 75, subSkills: ['Data Structures', 'System Design'] },
+  { name: 'Database & Data Storage', score: 68, subSkills: ['MongoDB', 'SQL'] },
+  { name: 'DevOps & Cloud Systems', score: 60, subSkills: ['Git', 'Docker'] },
 ]
 
 const defaultStrengths = ['JavaScript', 'React', 'Problem Solving', 'REST APIs', 'Git']
@@ -18,6 +18,71 @@ const defaultRoadmap = [
   { step: '04', title: 'Mock Interview Rounds', detail: 'Timed sessions with live AI scoring.', done: false },
 ]
 
+function categorizeSkills(rawSkills) {
+  if (!rawSkills || rawSkills.length === 0) return defaultSkills
+
+  const domains = [
+    {
+      name: 'Frontend Architecture',
+      keywords: ['react', 'html', 'css', 'javascript', 'typescript', 'tailwind', 'redux', 'next', 'vue', 'frontend', 'ui', 'ux'],
+      skills: [],
+      scores: []
+    },
+    {
+      name: 'Backend & API Engineering',
+      keywords: ['node', 'express', 'python', 'java', 'c++', 'rest', 'api', 'graphql', 'backend', 'server', 'jwt', 'auth'],
+      skills: [],
+      scores: []
+    },
+    {
+      name: 'Database & Data Storage',
+      keywords: ['mongo', 'mongodb', 'sql', 'postgresql', 'mysql', 'database', 'redis', 'mongoose', 'data'],
+      skills: [],
+      scores: []
+    },
+    {
+      name: 'DevOps & Cloud Systems',
+      keywords: ['docker', 'git', 'github', 'aws', 'ci/cd', 'cloud', 'devops', 'kubernetes', 'jira', 'azure'],
+      skills: [],
+      scores: []
+    },
+    {
+      name: 'Core Problem Solving & Architecture',
+      keywords: ['algorithm', 'structure', 'system design', 'agile', 'project management', 'problem solving', 'scrum', 'documentation'],
+      skills: [],
+      scores: []
+    }
+  ]
+
+  rawSkills.forEach((item, idx) => {
+    const name = typeof item === 'object' && item !== null ? (item.name || item.skill) : String(item)
+    const score = typeof item === 'object' && typeof item?.score === 'number' ? item.score : Math.min(95, Math.max(55, 88 - idx * 6))
+    const lower = name.toLowerCase()
+
+    let matched = domains.find(d => d.keywords.some(kw => lower.includes(kw)))
+    if (!matched) {
+      matched = domains[4]
+    }
+    if (!matched.skills.includes(name)) {
+      matched.skills.push(name)
+      matched.scores.push(score)
+    }
+  })
+
+  const activeDomains = domains
+    .filter(d => d.skills.length > 0)
+    .map(d => {
+      const avg = Math.round(d.scores.reduce((a, b) => a + b, 0) / d.scores.length)
+      return {
+        name: d.name,
+        score: avg,
+        subSkills: d.skills
+      }
+    })
+
+  return activeDomains.length > 0 ? activeDomains : defaultSkills
+}
+
 export function SkillDashboard({ analysis }) {
   const strengths = analysis?.strengths && analysis.strengths.length > 0 ? analysis.strengths : defaultStrengths
 
@@ -27,20 +92,7 @@ export function SkillDashboard({ analysis }) {
   ]
   const weaknesses = rawWeaknesses.length > 0 ? Array.from(new Set(rawWeaknesses)) : defaultWeaknesses
 
-  const skillsList = analysis?.skills && analysis.skills.length > 0
-    ? analysis.skills.map((s, idx) => {
-        if (typeof s === 'object' && s !== null) {
-          return {
-            name: s.name || s.skill || `Skill ${idx + 1}`,
-            score: typeof s.score === 'number' ? s.score : Math.min(95, Math.max(50, 88 - idx * 6))
-          }
-        }
-        return {
-          name: String(s),
-          score: Math.min(95, Math.max(50, 88 - idx * 6))
-        }
-      })
-    : defaultSkills
+  const structuredSkills = categorizeSkills(analysis?.skills)
 
   const recommendations = analysis?.recommendations && analysis.recommendations.length > 0
     ? analysis.recommendations.map((rec, idx) => ({
@@ -51,9 +103,9 @@ export function SkillDashboard({ analysis }) {
       }))
     : defaultRoadmap
 
-  // Calculate overall score
-  const totalScoreSum = skillsList.reduce((acc, curr) => acc + curr.score, 0)
-  const readinessScore = Math.round(totalScoreSum / skillsList.length)
+  // Calculate overall readiness score
+  const totalScoreSum = structuredSkills.reduce((acc, curr) => acc + curr.score, 0)
+  const readinessScore = Math.round(totalScoreSum / structuredSkills.length)
   const strokeDashoffset = 2 * Math.PI * 42 * (1 - readinessScore / 100)
 
   return (
@@ -67,33 +119,62 @@ export function SkillDashboard({ analysis }) {
         </h2>
         {analysis && (
           <p className="mt-3 text-sm text-[#a1a1aa]">
-            Live AI breakdown generated from your uploaded resume.
+            Structured AI competency breakdown generated from your uploaded resume.
           </p>
         )}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        {/* Progress bars */}
+        {/* Structured Domain Competency Breakdown */}
         <div className="rounded-2xl border border-[#27272a] bg-[#18181b] p-6 lg:col-span-2">
-          <div className="mb-6 flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-white" />
-            <h3 className="font-display text-base font-semibold text-white">
-              Competency Breakdown
-            </h3>
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-white" />
+              <h3 className="font-display text-base font-semibold text-white">
+                Core Competency Domains
+              </h3>
+            </div>
+            <span className="flex items-center gap-1 text-xs text-[#a1a1aa]">
+              <Layers className="h-3.5 w-3.5" />
+              {structuredSkills.length} Domains Grouped
+            </span>
           </div>
-          <div className="flex flex-col gap-5">
-            {skillsList.map((s) => (
-              <div key={s.name}>
-                <div className="mb-2 flex items-center justify-between text-sm">
-                  <span className="font-medium text-white">{s.name}</span>
-                  <span className="tabular-nums text-[#a1a1aa]">{s.score}%</span>
+
+          <div className="flex flex-col gap-6">
+            {structuredSkills.map((domain) => (
+              <div key={domain.name} className="flex flex-col gap-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-semibold text-white">{domain.name}</span>
+                  <span className="tabular-nums text-xs font-bold text-white bg-[#27272a] px-2 py-0.5 rounded-full">
+                    {domain.score}%
+                  </span>
                 </div>
+
                 <div className="h-2 w-full overflow-hidden rounded-full bg-[#121215]">
                   <div
-                    className="h-full rounded-full bg-white transition-all duration-500"
-                    style={{ width: `${s.score}%` }}
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      domain.score >= 75
+                        ? 'bg-emerald-400'
+                        : domain.score >= 60
+                        ? 'bg-white'
+                        : 'bg-amber-400'
+                    }`}
+                    style={{ width: `${domain.score}%` }}
                   />
                 </div>
+
+                {domain.subSkills && domain.subSkills.length > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {domain.subSkills.map((sub) => (
+                      <span
+                        key={sub}
+                        className="rounded-md border border-[#27272a]/60 bg-[#09090b]/60 px-2 py-0.5 text-[11px] text-[#a1a1aa]"
+                      >
+                        {sub}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>

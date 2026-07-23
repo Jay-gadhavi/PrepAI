@@ -10,12 +10,14 @@ const defaultQuestions = [
 ]
 
 export function MockInterview({ questions, analysisId }) {
-  const activeQuestions = questions && questions.length > 0 ? questions : defaultQuestions
+  const isCustomQuestions = Boolean(questions && questions.length > 0)
+  const activeQuestions = isCustomQuestions ? questions : defaultQuestions
   const [currentIdx, setCurrentIdx] = useState(0)
   const [answer, setAnswer] = useState('')
   const [isEvaluating, setIsEvaluating] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [score, setScore] = useState(null)
+  const [verdict, setVerdict] = useState(null)
   const [feedback, setFeedback] = useState([])
   const [isListening, setIsListening] = useState(false)
   const [recognition, setRecognition] = useState(null)
@@ -91,26 +93,29 @@ export function MockInterview({ questions, analysisId }) {
 
       const data = await res.json()
       if (data.success && data.evaluation) {
-        setScore(data.evaluation.score || 82)
+        const evalScore = typeof data.evaluation.score === 'number' ? data.evaluation.score : 65
+        setScore(evalScore)
+        setVerdict(data.evaluation.verdict || (evalScore >= 75 ? 'Good' : evalScore >= 50 ? 'Needs Improvement' : 'Unsatisfactory'))
         setFeedback(
-          Array.isArray(data.evaluation.feedback)
+          Array.isArray(data.evaluation.feedback) && data.evaluation.feedback.length > 0
             ? data.evaluation.feedback
-            : [data.evaluation.feedback || 'Good effort. Add more technical details and concrete metrics.']
+            : ['Answer evaluated. Add specific technical details and STAR metrics.']
         )
       } else {
-        setScore(78)
+        setScore(35)
+        setVerdict('Unsatisfactory')
         setFeedback([
-          'Answer received and evaluated.',
-          'Structure your answer clearly with problem, action, and result (STAR method).',
-          'Mention trade-offs and performance implications.',
+          'Evaluation server response incomplete.',
+          'Please ensure your answer directly addresses the technical concepts in the question.',
         ])
       }
     } catch (error) {
       console.error(error)
-      setScore(75)
+      setScore(40)
+      setVerdict('Needs Improvement')
       setFeedback([
-        'Answer successfully parsed by PrepAI.',
-        'Include measurable metrics and concrete algorithm choices in your response.',
+        'Evaluation parsed locally.',
+        'Detail your architectural choices, state management, and performance trade-offs.',
       ])
     } finally {
       setIsEvaluating(false)
@@ -122,6 +127,7 @@ export function MockInterview({ questions, analysisId }) {
     setSubmitted(false)
     setAnswer('')
     setScore(null)
+    setVerdict(null)
     setFeedback([])
     setCurrentIdx((prev) => (prev + 1) % activeQuestions.length)
   }
@@ -129,9 +135,17 @@ export function MockInterview({ questions, analysisId }) {
   return (
     <section id="practice" className="mx-auto max-w-5xl px-6 py-20">
       <div className="mb-14 max-w-2xl">
-        <span className="text-xs font-medium uppercase tracking-[0.2em] text-[#a1a1aa]">
-          Live Practice
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-medium uppercase tracking-[0.2em] text-[#a1a1aa]">
+            Live Practice
+          </span>
+          {isCustomQuestions && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-0.5 text-xs font-semibold text-emerald-400">
+              <Sparkles className="h-3 w-3" />
+              Tailored to Uploaded Resume
+            </span>
+          )}
+        </div>
         <h2 className="mt-3 font-display text-balance text-4xl font-bold tracking-tight text-white sm:text-5xl">
           Your AI mock interview terminal.
         </h2>
@@ -223,17 +237,38 @@ export function MockInterview({ questions, analysisId }) {
             {isEvaluating ? (
               <div className="mt-10 flex flex-col items-center justify-center text-center">
                 <Loader2 className="h-8 w-8 animate-spin text-white mb-3" />
-                <p className="text-sm font-medium text-white">Analyzing response with NLP…</p>
-                <p className="text-xs text-[#a1a1aa] mt-1">Generating technical feedback</p>
+                <p className="text-sm font-medium text-white">Groq AI Analyzing Answer…</p>
+                <p className="text-xs text-[#a1a1aa] mt-1">Evaluating relevance, depth & structure</p>
               </div>
             ) : submitted && score !== null ? (
               <>
-                <div className="mt-4 flex items-end gap-2">
-                  <span className="font-display text-5xl font-bold text-white">{score}</span>
-                  <span className="mb-1 text-lg text-[#a1a1aa]">%</span>
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="flex items-end gap-1">
+                    <span className="font-display text-5xl font-bold text-white">{score}</span>
+                    <span className="mb-1 text-lg text-[#a1a1aa]">%</span>
+                  </div>
+                  {verdict && (
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        score >= 75
+                          ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                          : score >= 50
+                          ? 'border border-amber-500/30 bg-amber-500/10 text-amber-400'
+                          : 'border border-red-500/30 bg-red-500/10 text-red-400'
+                      }`}
+                    >
+                      {verdict}
+                    </span>
+                  )}
                 </div>
+
                 <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[#09090b]">
-                  <div className="h-full rounded-full bg-white" style={{ width: `${score}%` }} />
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      score >= 75 ? 'bg-emerald-400' : score >= 50 ? 'bg-amber-400' : 'bg-red-400'
+                    }`}
+                    style={{ width: `${score}%` }}
+                  />
                 </div>
 
                 <ul className="mt-6 flex flex-col gap-3">
@@ -260,7 +295,7 @@ export function MockInterview({ questions, analysisId }) {
                   <Sparkles className="h-5 w-5" />
                 </span>
                 <p className="max-w-[16rem] text-sm text-[#a1a1aa]">
-                  Submit your answer to receive real-time NLP scoring and AI feedback.
+                  Submit your answer to receive real-time Groq AI scoring and STAR feedback.
                 </p>
               </div>
             )}

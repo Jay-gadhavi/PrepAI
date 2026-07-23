@@ -121,11 +121,13 @@ router.post("/analyze", async (req, res) => {
   }
 });
 
-router.post("/evaluate", protect, async (req, res) => {
+router.post("/evaluate", async (req, res) => {
   try {
     const { question, answer, analysisId } = req.body;
 
+    console.log("⚡ Triggering Groq AI Answer Evaluation...");
     const evaluation = await evaluateAnswer(question, answer);
+    console.log("✅ Groq Evaluation Result:", JSON.stringify(evaluation, null, 2));
 
     // Save Interview Session to MongoDB if DB is connected
     let savedSession = null;

@@ -188,44 +188,90 @@ ${truncatedText}
  * Evaluate Candidate Answer with Groq AI
  */
 async function evaluateAnswer(question, answer) {
-  const prompt = `
-Evaluate the candidate's interview response.
-Question: "${question}"
-Candidate Answer: "${answer}"
+  const trimmed = (answer || "").trim();
 
-Return ONLY a valid JSON object:
+  // Instant rejection for empty or ultra-short/gibberish answers
+  if (!trimmed || trimmed.length < 5) {
+    return {
+      score: 15,
+      verdict: "Unsatisfactory",
+      isRelevant: false,
+      feedback: [
+        "Answer is too brief or incomplete to evaluate.",
+        "Please provide a detailed response addressing the question directly.",
+        "Use the STAR method (Situation, Task, Action, Result) for structured answers."
+      ]
+    };
+  }
+
+  const prompt = `
+You are a strict, experienced technical interviewer conducting an actual job interview.
+Evaluate the candidate's answer to the question below.
+
+Question: "${question}"
+Candidate Answer: "${trimmed}"
+
+CRITICAL EVALUATION INSTRUCTIONS:
+1. First, check if the candidate's answer is relevant to the question.
+2. If the answer is off-topic, random text/gibberish, "I don't know", or completely misses the question:
+   - Set "score" between 0 and 35.
+   - Set "verdict" to "Unsatisfactory".
+   - Set "isRelevant" to false.
+   - Give 2-3 specific feedback points explaining why the response failed to answer the question.
+3. If the answer is partially relevant or missing key technical depth:
+   - Set "score" between 40 and 68.
+   - Set "verdict" to "Needs Improvement".
+   - Set "isRelevant" to true.
+   - Give 2-3 specific technical suggestions on what concepts should be added.
+4. If the answer is accurate, well-structured, and directly answers the prompt:
+   - Set "score" between 75 and 95.
+   - Set "verdict" to "Excellent" or "Good".
+   - Set "isRelevant" to true.
+   - Give 2-3 positive & constructive feedback points highlighting strengths and minor enhancements.
+
+Return ONLY a valid JSON object matching this schema:
 {
-  "score": 85,
+  "score": number,
+  "verdict": "Unsatisfactory" | "Needs Improvement" | "Good" | "Excellent",
+  "isRelevant": boolean,
   "feedback": [
-    "Constructive feedback point 1",
-    "Constructive feedback point 2"
+    "Feedback point 1",
+    "Feedback point 2",
+    "Feedback point 3"
   ]
 }
 `;
 
-  const jsonString = await callGroqAPI(prompt, "You are a technical interviewer evaluating candidate answers.");
+  const jsonString = await callGroqAPI(prompt, "You are a strict technical interviewer. Output raw valid JSON only.");
   if (jsonString) {
     try {
       const parsed = JSON.parse(jsonString);
       return {
-        score: typeof parsed.score === "number" ? parsed.score : 80,
-        feedback: Array.isArray(parsed.feedback) ? parsed.feedback : ["Good foundational response."]
+        score: typeof parsed.score === "number" ? Math.min(100, Math.max(0, parsed.score)) : 70,
+        verdict: parsed.verdict || (parsed.score >= 75 ? "Good" : parsed.score >= 50 ? "Needs Improvement" : "Unsatisfactory"),
+        isRelevant: typeof parsed.isRelevant === "boolean" ? parsed.isRelevant : true,
+        feedback: Array.isArray(parsed.feedback) && parsed.feedback.length > 0
+          ? parsed.feedback
+          : ["Answer processed.", "Focus on explaining core architecture and trade-offs."]
       };
     } catch (e) {
-      console.warn("⚠️ Groq JSON parse note on evaluateAnswer");
+      console.warn("⚠️ Groq JSON parse note on evaluateAnswer:", e.message);
     }
   }
 
-  // Fallback scoring
-  const wordCount = (answer || "").trim().split(/\s+/).length;
-  const score = Math.min(95, Math.max(60, 65 + Math.floor(wordCount * 0.8)));
+  // Fallback scoring logic
+  const wordCount = trimmed.split(/\s+/).length;
+  const isTooShort = wordCount < 8;
+  const fallbackScore = isTooShort ? 30 : Math.min(88, Math.max(45, 55 + Math.floor(wordCount * 0.7)));
 
   return {
-    score,
+    score: fallbackScore,
+    verdict: fallbackScore < 45 ? "Unsatisfactory" : fallbackScore < 75 ? "Needs Improvement" : "Good",
+    isRelevant: !isTooShort,
     feedback: [
-      `Response contains ${wordCount} words.`,
-      "Structure your response clearly using the STAR method (Situation, Task, Action, Result).",
-      "Mention technical trade-offs and real-world metrics to further strengthen your answer."
+      `Response length: ${wordCount} words.`,
+      isTooShort ? "Your response is very short. Elaborate with technical examples." : "Structure your answer using the STAR method.",
+      "Highlight trade-offs and performance implications."
     ]
   };
 }
