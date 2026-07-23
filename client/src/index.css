@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  --background: #09090b;
+  --foreground: #ffffff;
+  --surface: #121215;
+  --card: #18181b;
+  --card-foreground: #ffffff;
+  --popover: #18181b;
+  --popover-foreground: #ffffff;
+  --primary: #ffffff;
+  --primary-foreground: #09090b;
+  --secondary: #18181b;
+  --secondary-foreground: #ffffff;
+  --muted: #1c1c1f;
+  --muted-foreground: #a1a1aa;
+  --accent: #27272a;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --border: #27272a;
+  --input: #27272a;
+  --ring: #ffffff;
+  --radius: 0.75rem;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', sans-serif;
+}
+
+.font-display {
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+}
+
+/* Fine dot-matrix / grid overlay */
+.bg-dot-matrix {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.bg-grid-lines {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+.mask-fade-b {
+  -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+}
+
+.glow-ring {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 40px -12px rgba(255, 255, 255, 0.25);
+}
